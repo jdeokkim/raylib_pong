@@ -15,14 +15,17 @@
     along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-/* 프레임 카운터를 확인한다. */
-int CheckFrameCounter(void);
+static int result = 0;
 
-/* 타이머를 확인한다. */
-int CheckTimer(void);
+/* 게임 오버 화면을 초기화한다. */
+void InitGameoverScreen(void) {
+}
 
-/* 타이머를 초기화한다. */
-void ResetTimer(void);
+/* 게임 오버 화면을 업데이트한다. */
+void UpdateGameoverScreen(void) {
+}
 
-/* 타이머를 업데이트한다. */
-void UpdateTimer(void);
+/* 게임 오버 화면을 종료한다. */
+int FinishGameoverScreen(void) {
+    return result;
+}

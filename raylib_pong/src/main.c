@@ -15,58 +15,21 @@
     along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-#include "impl.h"
+#include "impl/impl.h"
 #include "raylib.h"
 
-int main(void)
-{
+int main(void) {
     InitAudioDevice();
-    InitWindow(1024, 768, "raylib_pong");
+    InitWindow(DEFAULT_WIDTH, DEFAULT_HEIGHT, "raylib_pong");
     SetWindowIcon(LoadImage("res/img/icon.png"));
 
     SetTargetFPS(TARGET_FPS);
 
-    InitializeGame();
-
-    CurrentState current_state = TITLE;
-
     while (!WindowShouldClose()) {
         BeginDrawing();
-
-        switch (current_state) {
-            case TITLE:
-                ShowTitleScreen();
-
-                if (IsKeyPressed(KEY_ENTER))
-                    current_state = GAMEPLAY;
-
-                break;
-
-            case PAUSED:
-                PauseGame();
-
-                if (IsKeyPressed(KEY_SPACE)) {
-                    current_state = GAMEPLAY;
-                    TogglePause();
-                }
-
-                break;
-              
-            case GAMEPLAY:
-                UpdateGame();
-
-                if (IsKeyPressed(KEY_SPACE)) {
-                    current_state = PAUSED;
-                    TogglePause();
-                }
-
-                break;
-        }
-
+        UpdateCurrentScreen();
         EndDrawing();
     }
-
-    UnloadGame();
 
     CloseWindow();
 

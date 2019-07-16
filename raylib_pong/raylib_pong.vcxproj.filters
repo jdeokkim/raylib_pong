@@ -18,18 +18,21 @@
     <ClCompile Include="src\main.c">
       <Filter>소스 파일</Filter>
     </ClCompile>
-    <ClCompile Include="src\impl.c">
+    <ClCompile Include="src\impl\title.c">
       <Filter>소스 파일</Filter>
     </ClCompile>
-    <ClCompile Include="src\timer.c">
+    <ClCompile Include="src\impl\impl.c">
+      <Filter>소스 파일</Filter>
+    </ClCompile>
+    <ClCompile Include="src\impl\over.c">
+      <Filter>소스 파일</Filter>
+    </ClCompile>
+    <ClCompile Include="src\impl\play.c">
       <Filter>소스 파일</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="src\impl.h">
-      <Filter>헤더 파일</Filter>
-    </ClInclude>
-    <ClInclude Include="src\timer.h">
+    <ClInclude Include="src\impl\impl.h">
       <Filter>헤더 파일</Filter>
     </ClInclude>
   </ItemGroup>
