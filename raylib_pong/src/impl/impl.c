@@ -20,7 +20,7 @@
 #include "impl.h"
 
 Scene current_scene = INIT;
-GameState current_state = NORMAL;
+GameState current_state = WAITING;
 
 /* 깜박이는 텍스트를 그린다. */
 IMPL void DrawBlinkingText(int interval, const char *text, int posX, int posY, int fontSize, Color color) {
@@ -86,6 +86,14 @@ IMPL void UpdateCurrentScreen(void) {
 
         case GAMEPLAY:
             UpdateGameplayScreen();
+
+            if (FinishGameplayScreen())
+                MoveTo(GAMEOVER);
+
+            break;
+
+        case GAMEOVER:
+            UpdateGameoverScreen();
 
             break;
     }

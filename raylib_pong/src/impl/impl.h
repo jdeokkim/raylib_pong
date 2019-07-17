@@ -22,6 +22,9 @@
 #define DEFAULT_WIDTH 1024
 #define DEFAULT_HEIGHT 768
 #define TARGET_FPS 60
+#define TARGET_SCORE 11
+#define MAX_LEN 16
+#define TIMEOUT 3
 
 /* 게임 장면 목록 */
 typedef enum scene {
@@ -34,6 +37,7 @@ typedef enum scene {
 
 /* 게임의 현재 상태 */
 typedef enum game_state {
+    WAITING,
     NORMAL,
     PAUSED
 } GameState;

@@ -15,6 +15,8 @@
     along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
+#include "impl.h"
+
 static int result = 0;
 
 /* 게임 오버 화면을 초기화한다. */
@@ -23,6 +25,7 @@ void InitGameoverScreen(void) {
 
 /* 게임 오버 화면을 업데이트한다. */
 void UpdateGameoverScreen(void) {
+    ClearBackground(BLACK);
 }
 
 /* 게임 오버 화면을 종료한다. */
