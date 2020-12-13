@@ -15,20 +15,27 @@
     along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-#ifndef IMPL_H
-#define IMPL_H
+#ifndef CORE_H
+#define CORE_H
+
+#include <math.h>
+#include <stdlib.h>
 
 #include "raylib.h"
 
-#define IMPL  
+#define PONG_IMPL 
+
+#define TARGET_FPS 120
 
 #define DEFAULT_WIDTH 1024
 #define DEFAULT_HEIGHT 768
 
-#define TARGET_FPS 120
-#define TARGET_SCORE 11
+#define BALL_RADIUS 12.0f
 
-#define MAX_LEN 8
+#define PADDLE_WIDTH 24
+#define PADDLE_HEIGHT 112
+
+#define END_SCORE 11
 
 #define TIMEOUT 3
 
@@ -36,7 +43,6 @@
 typedef enum scene {
     INIT,
     TITLE,
-    OPTIONS,
     GAMEPLAY,
     GAMEOVER
 } Scene;
@@ -50,25 +56,28 @@ typedef enum game_state {
 
 extern GameState current_state;
 
-Image img_linear_gradient;
+Image im_linear_gradient;
 
-Sound sfx_enter_key_pressed;
-Sound sfx_left_paddle_bounce;
-Sound sfx_right_paddle_bounce;
-Sound sfx_update_score;
-Sound sfx_update_timer;
+Sound sn_enter_key_pressed;
+Sound sn_left_paddle_bounce;
+Sound sn_right_paddle_bounce;
+Sound sn_update_score;
+Sound sn_update_timer;
 
 /* 깜박이는 텍스트를 그린다. */
-IMPL void DrawBlinkingText(int interval, const char *text, int posX, int posY, int fontSize, Color color);
+PONG_IMPL void DrawBlinkingText(int interval, const char *text, int posX, int posY, int fontSize, Color color);
 
 /* 페이드 효과를 적용한 텍스트를 그린다. */
-IMPL void DrawFadingText(int interval, const char *text, int posX, int posY, int fontSize, Color color);
+PONG_IMPL void DrawFadingText(int interval, const char *text, int posX, int posY, int fontSize, Color color);
 
 /* 게임의 다음 장면으로 넘어간다. */
-IMPL void MoveTo(int next_scene);
+PONG_IMPL void MoveTo(int next_scene);
+
+/* 게임을 '깔끔하게' 종료한다. */
+PONG_IMPL void QuitWindow(void);
 
 /* 게임의 현재 장면을 업데이트한다. */
-IMPL void UpdateCurrentScreen(void);
+PONG_IMPL void UpdateCurrentScreen(void);
 
 /* 게임 시작 화면을 초기화한다. */
 void InitTitleScreen(void);

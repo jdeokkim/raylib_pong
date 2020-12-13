@@ -17,31 +17,36 @@
 
 #define _USE_MATH_DEFINES
 
+#if defined(__WIN32)
+    #include <process.h>
+    #define PROC_ID ((unsigned int) _getpid())
+#else
+    #include <sys/types.h> 
+    #include <unistd.h>
+    #define PROC_ID (getpid())
+#endif
+
 #include <stdbool.h>
-#include <stdlib.h>
-#include <math.h>
-#include <process.h>
 #include <time.h>
 
-#include "impl.h"
-
-static int result = 0; // 게임 플레이 화면의 결과값
+#include "core.h"
 
 static int left_score, right_score; // 플레이어 점수
+static unsigned int collision_count; // 공과 패들이 충돌한 횟수
 
-static const float ball_radius = 12.0f; // 공의 반지름
 static Color ball_color = { 255, 255, 255, 255 }; // 공의 색깔
-static unsigned char *ball_gradient; // 공의 색깔을 결정하는 데이터
-static float ball_speed = 0.0f; // 공의 이동 속도
-static double ball_theta = 0.0; // 공이 날아가는 각도
 static Vector2 ball_pos = { 0.0f }; // 공의 위치
 
-static const int paddle_width = 24; // 패들의 가로 길이
-static const int paddle_height = 112; // 패들의 세로 길이
-static float paddle_speed = 0.0f; // 패들의 이동 속도
-static Vector2 left_paddle_pos = { 0.0f }, right_paddle_pos = { 0.0f }; // 패들의 위치
+static float ball_speed = 0.0f; // 공의 이동 속도
+static double ball_theta = 0.0; // 공이 날아가는 각도
+static unsigned char *ball_gradient; // 공의 색깔을 결정하는 데이터
 
-static unsigned int collision_count = 0; // 공과 패들이 충돌한 횟수
+static Vector2 left_paddle_pos = { 0.0f };
+static Vector2 right_paddle_pos = { 0.0f };
+
+static float paddle_speed; // 패들의 이동 속도
+
+static int result; // 게임 플레이 화면의 결과값
 
 /* 공의 위치와 각도를 초기화한다. */
 static void InitializeBall(void);
@@ -63,18 +68,18 @@ static void UpdateTimer(void);
 
 /* 게임 플레이 화면을 초기화한다. */
 void InitGameplayScreen(void) {
-    srand((unsigned int) time(NULL) + (unsigned int) _getpid());
+    srand((unsigned int) time(NULL) + PROC_ID);
 
-    img_linear_gradient = LoadImage("res/img/linear_gradient.png");
-    ball_gradient = (unsigned char *) img_linear_gradient.data;
+    im_linear_gradient = LoadImage("res/images/linear_gradient.png");
+    ball_gradient = (unsigned char *) im_linear_gradient.data;
 
-    sfx_left_paddle_bounce = LoadSound("res/sfx/left_paddle_bounce.wav");
-    sfx_right_paddle_bounce = LoadSound("res/sfx/right_paddle_bounce.wav");
-    sfx_update_score = LoadSound("res/sfx/update_score.wav");
-    sfx_update_timer = LoadSound("res/sfx/update_timer.wav");
+    sn_left_paddle_bounce = LoadSound("res/sounds/left_paddle_bounce.wav");
+    sn_right_paddle_bounce = LoadSound("res/sounds/right_paddle_bounce.wav");
+    sn_update_score = LoadSound("res/sounds/update_score.wav");
+    sn_update_timer = LoadSound("res/sounds/update_timer.wav");
 
-    left_paddle_pos = (Vector2) { 64.0f, (GetScreenHeight() - paddle_height) / 2.0f };
-    right_paddle_pos = (Vector2) { GetScreenWidth() - 84.0f, (GetScreenHeight() - paddle_height) / 2.0f };
+    left_paddle_pos = (Vector2) { 64.0f, (GetScreenHeight() - PADDLE_HEIGHT) / 2.0f };
+    right_paddle_pos = (Vector2) { GetScreenWidth() - 84.0f, (GetScreenHeight() - PADDLE_HEIGHT) / 2.0f };
 
     InitializeBall();
 }
@@ -135,12 +140,12 @@ int FinishGameplayScreen(void) {
             return 0;
         }
 
-        UnloadImage(img_linear_gradient);
+        UnloadImage(im_linear_gradient);
 
-        UnloadSound(sfx_left_paddle_bounce);
-        UnloadSound(sfx_right_paddle_bounce);
-        UnloadSound(sfx_update_score);
-        UnloadSound(sfx_update_timer);
+        UnloadSound(sn_left_paddle_bounce);
+        UnloadSound(sn_right_paddle_bounce);
+        UnloadSound(sn_update_score);
+        UnloadSound(sn_update_timer);
 
         result = 0;
         frame_counter = 0;
@@ -154,13 +159,13 @@ int FinishGameplayScreen(void) {
 
 /* 공의 위치와 각도를 초기화한다. */
 static void InitializeBall(void) {
-    // 공의 이전 각도
+    // 공의 이전 각도를 미리 저장
     double prev_ball_theta = ball_theta;
 
     while (prev_ball_theta == ball_theta
         || (ball_theta > (M_PI / 3.0) && ball_theta < 2.0 * (M_PI / 3.0))
         || (ball_theta > 4.0 * (M_PI / 3.0) && ball_theta < 5.0 * (M_PI / 3.0)))
-        ball_theta = /* 0도 ~ 360도 */ M_PI * ((double)rand() / RAND_MAX) * 2.0;
+        ball_theta = /* 0도 ~ 360도 */ M_PI * ((double) rand() / RAND_MAX) * 2.0;
 
     ball_pos = (Vector2) { GetScreenWidth() / 2.0f, (GetScreenHeight() - 12.0f) / 2.0f };
 }
@@ -184,8 +189,9 @@ static void UpdateBackground(void) {
 
 /* 공의 위치를 업데이트한다. */
 static void UpdateBall(void) {
+    // 공과 패들의 충돌 횟수가 한번에 일정 횟수 이상 올라가지 않게 하는 변수
+    static bool rate_limited = false; 
     static int frame_counter = -1;
-    static bool rate_limited = false;
 
     if (rate_limited && frame_counter < (TARGET_FPS / 2))
         frame_counter++;
@@ -194,28 +200,23 @@ static void UpdateBall(void) {
         rate_limited = false;
     }
 
-    /*
-        속도 벡터 `v` (`v` = (x, y) = (f(t), g(t)))가 x축의 양의 방향과 이루는 각의 크기를 θ라고 하자.
-        이때 `v_x` = `v` * cosθ이고, `v_y`는 `v` * sinθ인 것을 그림으로 확인할 수 있다.
-        따라서 `v_x` = `v` * cosθ = dx/dt, `v_y` = `v` * sinθ  = dy/dt이다.
-    */
     ball_pos.x += ball_speed * (float) cos(ball_theta);
     ball_pos.y += ball_speed * (float) sin(ball_theta);
 
-    if (ball_pos.x <= ball_radius || ball_pos.x >= GetScreenWidth() - ball_radius) {
+    if (ball_pos.x <= BALL_RADIUS || ball_pos.x >= GetScreenWidth() - BALL_RADIUS) {
         current_state = WAITING;
         
         collision_count = 0;
 
-        if (ball_pos.x <= ball_radius)
+        if (ball_pos.x <= BALL_RADIUS)
             right_score++;
         else
             left_score++;
 
-        if (left_score >= TARGET_SCORE || right_score >= TARGET_SCORE)
+        if (left_score >= END_SCORE || right_score >= END_SCORE)
             result = 1;
 
-        PlaySound(sfx_update_score);
+        PlaySound(sn_update_score);
 
         InitializeBall();
     }
@@ -225,8 +226,8 @@ static void UpdateBall(void) {
         공의 그 다음 각도의 영향을 주는 것은 공의 중앙점과 패들의 중앙점 사이의 거리뿐이다.
         따라서 두 점 사이의 거리를 구한 다음, 정해진 최소 각도와 최대 각도에 따라 공을 날려보낸다.
     */
-    if (CheckCollisionCircleRec(ball_pos, ball_radius, (Rectangle) { left_paddle_pos.x, left_paddle_pos.y, (float) paddle_width, (float) paddle_height })) {
-        double diff = /* 패들 위의 공의 접점 */ (ball_pos.y + ball_radius * sin(M_PI - ball_theta)) - /* 패들 중앙점의 y좌표 */ (left_paddle_pos.y + (paddle_height / 2.0));
+    if (CheckCollisionCircleRec(ball_pos, BALL_RADIUS, (Rectangle) { left_paddle_pos.x, left_paddle_pos.y, (float) PADDLE_WIDTH, (float) PADDLE_HEIGHT })) {
+        double diff = /* 패들 위의 공의 접점 */ (ball_pos.y + BALL_RADIUS * sin(M_PI - ball_theta)) - /* 패들 중앙점의 y좌표 */ (left_paddle_pos.y + (PADDLE_HEIGHT / 2.0));
         ball_theta = 2 * M_PI * (diff < 0) + diff * (M_PI / 180);
 
         if (!rate_limited) {
@@ -235,11 +236,11 @@ static void UpdateBall(void) {
             if (collision_count < 40)
                 collision_count++;
 
-            PlaySound(sfx_left_paddle_bounce);
+            PlaySound(sn_left_paddle_bounce);
         }
     }
-    else if (CheckCollisionCircleRec(ball_pos, ball_radius, (Rectangle) { right_paddle_pos.x, right_paddle_pos.y, (float) paddle_width, (float) paddle_height })) {
-        double diff = /* 패들 위의 공의 접점 */ (ball_pos.y + ball_radius * sin(ball_theta)) - /* 패들 중앙점의 y좌표 */ (right_paddle_pos.y + (paddle_height / 2.0));
+    else if (CheckCollisionCircleRec(ball_pos, BALL_RADIUS, (Rectangle) { right_paddle_pos.x, right_paddle_pos.y, (float) PADDLE_WIDTH, (float) PADDLE_HEIGHT })) {
+        double diff = /* 패들 위의 공의 접점 */ (ball_pos.y + BALL_RADIUS * sin(ball_theta)) - /* 패들 중앙점의 y좌표 */ (right_paddle_pos.y + (PADDLE_HEIGHT / 2.0));
         ball_theta = M_PI - diff * (M_PI / 180);
 
         if (!rate_limited) {
@@ -248,17 +249,17 @@ static void UpdateBall(void) {
             if (collision_count < 40)
                 collision_count++;
 
-            PlaySound(sfx_right_paddle_bounce);
+            PlaySound(sn_right_paddle_bounce);
         }
     }
     else {
-        if (ball_pos.y < ball_radius || ball_pos.y > GetScreenHeight() - ball_radius) {
+        if (ball_pos.y < BALL_RADIUS || ball_pos.y > GetScreenHeight() - BALL_RADIUS) {
             ball_theta = 2 * M_PI - ball_theta;
 
-            if (ball_pos.y < ball_radius)
-                ball_pos.y = ball_radius;
+            if (ball_pos.y < BALL_RADIUS)
+                ball_pos.y = BALL_RADIUS;
             else
-                ball_pos.y = GetScreenHeight() - ball_radius;
+                ball_pos.y = GetScreenHeight() - BALL_RADIUS;
         }
     }
 
@@ -266,7 +267,7 @@ static void UpdateBall(void) {
     ball_color.g = ball_gradient[9 * collision_count + 1];
     ball_color.b = ball_gradient[9 * collision_count + 2];
 
-    DrawCircle((int) ball_pos.x, (int) ball_pos.y, ball_radius, ball_color);
+    DrawCircle((int) ball_pos.x, (int) ball_pos.y, BALL_RADIUS, ball_color);
 }
 
 /* 패들의 위치를 업데이트한다. */
@@ -285,21 +286,21 @@ static void UpdatePaddles(void) {
             right_paddle_pos.y += paddle_speed;
     }
 
-    // left_paddle_pos.y = ball_pos.y - 4 * ball_radius;
-    // right_paddle_pos.y = ball_pos.y - 4 * ball_radius;
+    // left_paddle_pos.y = ball_pos.y - 4 * BALL_RADIUS;
+    // right_paddle_pos.y = ball_pos.y - 4 * BALL_RADIUS;
 
     if (left_paddle_pos.y <= 0)
         left_paddle_pos.y = 0;
-    else if (left_paddle_pos.y >= GetScreenHeight() - paddle_height)
-        left_paddle_pos.y = (float) (GetScreenHeight() - paddle_height);
+    else if (left_paddle_pos.y >= GetScreenHeight() - PADDLE_HEIGHT)
+        left_paddle_pos.y = (float) (GetScreenHeight() - PADDLE_HEIGHT);
 
     if (right_paddle_pos.y <= 0)
         right_paddle_pos.y = 0;
-    else if (right_paddle_pos.y >= GetScreenHeight() - paddle_height)
-        right_paddle_pos.y = (float) (GetScreenHeight() - paddle_height);
+    else if (right_paddle_pos.y >= GetScreenHeight() - PADDLE_HEIGHT)
+        right_paddle_pos.y = (float) (GetScreenHeight() - PADDLE_HEIGHT);
 
-    DrawRectangle((int) left_paddle_pos.x, (int) left_paddle_pos.y, paddle_width, paddle_height, WHITE);
-    DrawRectangle((int) right_paddle_pos.x, (int)right_paddle_pos.y, paddle_width, paddle_height, WHITE);
+    DrawRectangle((int) left_paddle_pos.x, (int) left_paddle_pos.y, PADDLE_WIDTH, PADDLE_HEIGHT, WHITE);
+    DrawRectangle((int) right_paddle_pos.x, (int)right_paddle_pos.y, PADDLE_WIDTH, PADDLE_HEIGHT, WHITE);
 }
 
 /* 점수를 업데이트한다. */
@@ -323,7 +324,8 @@ static void UpdateScores(void) {
 
 /* 타이머를 업데이트한다. */
 static void UpdateTimer(void) {
-    static int elapsed_time, frame_counter = -1;
+    static int elapsed_time;
+    static int frame_counter = -1;
 
     elapsed_time = frame_counter / TARGET_FPS;
 
@@ -332,7 +334,7 @@ static void UpdateTimer(void) {
             current_state = PAUSED;
 
         if (frame_counter % TARGET_FPS == 0)
-            PlaySound(sfx_update_timer);
+            PlaySound(sn_update_timer);
 
         DrawText(
             TextFormat("%d", TIMEOUT - elapsed_time),

@@ -15,15 +15,15 @@
     along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-#include "impl.h"
-#include "raylib.h"
+#include "core.h"
 
 int main(void) {
+    SetTargetFPS(TARGET_FPS);
+    
+    // SetWindowIcon(LoadImage("res/img/window_icon.png"));
+    
     InitAudioDevice();
     InitWindow(DEFAULT_WIDTH, DEFAULT_HEIGHT, "raylib_pong");
-    SetWindowIcon(LoadImage("res/img/window_icon.png"));
-
-    SetTargetFPS(TARGET_FPS);
 
     while (!WindowShouldClose())
         UpdateCurrentScreen();

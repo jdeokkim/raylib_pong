@@ -15,13 +15,13 @@
     along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-#include "impl.h"
+#include "core.h"
 
 static int result = 0;
 
 /* 게임 시작 화면을 초기화한다. */
 void InitTitleScreen(void) {
-    sfx_enter_key_pressed = LoadSound("res/sfx/enter_key_pressed.wav");
+    sn_enter_key_pressed = LoadSound("res/sounds/enter_key_pressed.wav");
 }
 
 /* 게임 시작 화면을 업데이트한다. */
@@ -54,7 +54,7 @@ void UpdateTitleScreen(void) {
     );
 
     if (IsKeyPressed(KEY_ENTER)) {
-        PlaySound(sfx_enter_key_pressed);
+        PlaySound(sn_enter_key_pressed);
         result = 1;
     }
 }
@@ -70,7 +70,7 @@ int FinishTitleScreen(void) {
             return 0;
         }
 
-        UnloadSound(sfx_enter_key_pressed);
+        UnloadSound(sn_enter_key_pressed);
 
         result = 0;
         return 1;
